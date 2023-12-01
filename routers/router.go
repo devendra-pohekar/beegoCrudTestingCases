@@ -15,6 +15,7 @@ func RoutersFunction() {
 	user := beego.NewNamespace("/v1",
 		beego.NSNamespace("/user",
 			beego.NSRouter("/add_user", userController, "post:RegisterUser"),
+			beego.NSRouter("/export", homeSettingController, "post:InsertData"),
 
 			beego.NSRouter("/login", userController, "post:Login"),
 			beego.NSRouter("/send_otp", userController, "post:SendMailForm"),

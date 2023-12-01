@@ -3,6 +3,7 @@ package models
 import (
 	"crud/helpers"
 	requestStruct "crud/requstStruct"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -25,7 +26,6 @@ func RegisterSetting(c requestStruct.HomeSeetingInsert, user_id float64, file_pa
 		SettingData: file_path.(string),
 		CreatedBy:   int(user_id),
 		UpdatedBy:   0,
-		// UpdatedDate: time.Now(),
 		CreatedDate: time.Now(),
 	}
 
@@ -173,3 +173,16 @@ func FetchSetting() (interface{}, error) {
 // 	// Return the data if successful
 // 	return homeResponse, nil
 // }
+
+func FetchSetting1() []HomePagesSettingTable {
+	o := orm.NewOrm()
+	var page_settings []HomePagesSettingTable
+
+	qs := o.QueryTable("home_page_setting_table") // Replace "user_table_name" with your actual table name
+
+	_, err := qs.All(&page_settings)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+	return page_settings
+}

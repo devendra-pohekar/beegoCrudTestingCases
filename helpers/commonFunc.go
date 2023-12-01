@@ -1,16 +1,21 @@
 package helpers
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"mime/multipart"
 	"net/smtp"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/beego/beego/v2/server/web/context"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -185,3 +190,218 @@ func GenerateUniqueCodeString(length int) string {
 	}
 	return string(result)
 }
+
+/*XLSX file creating functions*/
+func TransformToKeyValuePairss(data interface{}) ([]map[string]interface{}, error) {
+	value := reflect.ValueOf(data)
+	if value.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("input is not a slice")
+	}
+	result := make([]map[string]interface{}, value.Len())
+	for i := 0; i < value.Len(); i++ {
+		itemValue := value.Index(i)
+		if itemValue.Kind() != reflect.Struct {
+			return nil, fmt.Errorf("elements of the slice are not structs")
+		}
+
+		itemType := itemValue.Type()
+		itemMap := make(map[string]interface{})
+
+		for j := 0; j < itemType.NumField(); j++ {
+			field := itemType.Field(j)
+			fieldName := field.Tag.Get("json")
+			if fieldName == "" {
+				fieldName = field.Name
+			}
+			itemMap[fieldName] = itemValue.Field(j).Interface()
+		}
+
+		result[i] = itemMap
+	}
+
+	return result, nil
+}
+func formatValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case time.Time:
+		return v.Format("2006-01-02 15:04:05")
+	default:
+		return v
+	}
+}
+
+func XlsxFileCreater(data []map[string]interface{}, headers []string, folderPath, fileNamePrefix string) (string, error) {
+	file := excelize.NewFile()
+	sheet := "Sheet1"
+	file.NewSheet(sheet)
+	for colNum, header := range headers {
+		cell := fmt.Sprintf("%c%d", 'A'+colNum, 1)
+		file.SetCellValue(sheet, cell, header)
+	}
+
+	for rowNum, rowData := range data {
+		for colNum, key := range headers {
+			cell := fmt.Sprintf("%c%d", 'A'+colNum, rowNum+2)
+			if value, ok := rowData[key]; ok {
+				file.SetCellValue(sheet, cell, formatValue(value))
+			}
+		}
+	}
+
+	// Set column width based on the maximum content length in each column
+	for colNum, key := range headers {
+		maxLength := 0
+		for rowNum, rowData := range data {
+			log.Print(rowNum)
+			if value, ok := rowData[key]; ok {
+				cellValue := fmt.Sprintf("%v", formatValue(value))
+				valueLength := len(cellValue)
+				if valueLength > maxLength {
+					maxLength = valueLength
+				}
+			}
+		}
+
+		colName := fmt.Sprintf("%c", 'A'+colNum)
+		file.SetColWidth(sheet, colName, colName, float64(maxLength)*1.2) // Adjust the multiplier as needed of column
+	}
+	//if filepath not given than it take
+	if folderPath == "" {
+		folderPath = "FILES/XLSX"
+	}
+	//if folder not present in directory it create new folder directory
+	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create folder: %v", err)
+	}
+
+	fileName := fmt.Sprintf("%s_%s.xlsx", fileNamePrefix, time.Now().Format("20060102150405"))
+	filePath := filepath.Join(folderPath, fileName)
+	if err := file.SaveAs(filePath); err != nil {
+		return "", err
+	}
+	return filePath, nil
+}
+func FormateCSVDate(value interface{}) string {
+	switch v := value.(type) {
+	case time.Time:
+		return v.Format("2006-01-02 15:04:05") // Format the time value as needed
+	default:
+		return fmt.Sprintf("%v", value)
+	}
+}
+
+func CreateExcels(data []map[string]interface{}) error {
+	file := excelize.NewFile()
+	sheet := "Sheet1"
+	file.NewSheet(sheet)
+	headers := []string{"section", "data_type", "setting_data", "created_date", "updated_date", "created_by"}
+	for colNum, header := range headers {
+		cell := excelize.ToAlphaString(colNum+1) + "1"
+		file.SetCellValue(sheet, cell, header)
+	}
+
+	for rowNum, rowData := range data {
+		for colNum, key := range headers {
+			cell := excelize.ToAlphaString(colNum+1) + strconv.Itoa(rowNum+2)
+			if value, ok := rowData[key]; ok {
+				file.SetCellValue(sheet, cell, formatValue(value))
+			}
+		}
+	}
+
+	err := file.SaveAs("data.xlsx")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func CreateFile(data []map[string]interface{}, headers []string, folderPath, fileNamePrefix, fileType string) (string, error) {
+
+	TYPE := strings.ToUpper(fileType)
+	switch TYPE {
+	case "XLSX":
+		file := excelize.NewFile()
+		sheet := "Sheet1"
+		file.NewSheet(sheet)
+
+		// Set header row
+		for colNum, header := range headers {
+			cell := fmt.Sprintf("%c%d", 'A'+colNum, 1)
+			file.SetCellValue(sheet, cell, header)
+		}
+
+		// Set data rows
+		for rowNum, rowData := range data {
+			for colNum, key := range headers {
+				cell := fmt.Sprintf("%c%d", 'A'+colNum, rowNum+2)
+				if value, ok := rowData[key]; ok {
+					file.SetCellValue(sheet, cell, formatValue(value))
+				}
+			}
+		}
+
+		if folderPath == "" {
+			folderPath = "FILES/XLSX"
+		}
+
+		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+			return "", fmt.Errorf("failed to create folder: %v", err)
+		}
+
+		fileName := fmt.Sprintf("%s_%s.xlsx", fileNamePrefix, time.Now().Format("20060102150405"))
+		filePath := filepath.Join(folderPath, fileName)
+		if err := file.SaveAs(filePath); err != nil {
+			return "", err
+		}
+		return filePath, nil
+
+	case "CSV":
+		if folderPath == "" {
+			folderPath = "FILES/CSV"
+		}
+
+		if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+			return "", fmt.Errorf("failed to create folder: %v", err)
+		}
+
+		fileName := fmt.Sprintf("%s_%s.csv", fileNamePrefix, time.Now().Format("20060102150405"))
+		filePath := filepath.Join(folderPath, fileName)
+		file, err := os.Create(filePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to create CSV file: %v", err)
+		}
+		defer file.Close()
+
+		csvWriter := csv.NewWriter(file)
+		defer csvWriter.Flush()
+
+		// Write header row
+		if err := csvWriter.Write(headers); err != nil {
+			return "", fmt.Errorf("failed to write CSV header: %v", err)
+		}
+
+		// Write data rows
+		for _, rowData := range data {
+			var row []string
+			for _, key := range headers {
+				if value, ok := rowData[key]; ok {
+					row = append(row, FormateCSVDate(value))
+				} else {
+					row = append(row, "") // Handle missing data
+				}
+			}
+			if err := csvWriter.Write(row); err != nil {
+				return "", fmt.Errorf("failed to write CSV row: %v", err)
+			}
+		}
+
+		return filePath, nil
+
+	default:
+		return "", fmt.Errorf("unsupported file type: %s", fileType)
+	}
+}
+
+/* end XLSX file creating functions*/
