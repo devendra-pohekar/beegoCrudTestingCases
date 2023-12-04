@@ -3,6 +3,7 @@ package models
 import (
 	"crud/helpers"
 	requestStruct "crud/requstStruct"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -178,11 +179,102 @@ func FetchSetting1() []HomePagesSettingTable {
 	o := orm.NewOrm()
 	var page_settings []HomePagesSettingTable
 
-	qs := o.QueryTable("home_page_setting_table") // Replace "user_table_name" with your actual table name
+	qs := o.QueryTable("home_page_setting_table")
 
 	_, err := qs.All(&page_settings)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
 	return page_settings
+}
+
+func RegisterSettingBatch(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int64, error) {
+	db := orm.NewOrm()
+	var lastInsertIDs []int64
+	for _, row := range rows {
+
+		section, ok := row["Column1"].(string)
+		if !ok {
+			return nil, errors.New("missing 'Column1' in row")
+		}
+
+		dataType, ok := row["Column2"].(string)
+		if !ok {
+			return nil, errors.New("missing 'Column2' in row")
+		}
+
+		settingData, ok := row["Column3"].(string)
+		if !ok {
+			return nil, errors.New("missing 'Column3' in row")
+		}
+
+		res := HomePagesSettingTable{
+			Section:     section,
+			DataType:    dataType,
+			UniqueCode:  "",
+			SettingData: settingData,
+			CreatedBy:   int(user_id),
+			UpdatedBy:   0,
+			CreatedDate: time.Now(),
+			UpdatedDate: time.Now(),
+		}
+
+		_, err := db.Insert(&res)
+		if err != nil {
+			return nil, err
+		}
+
+		lastInsertIDs = append(lastInsertIDs, int64(res.PageSettingId))
+
+		UpdateUniqueCode(res.PageSettingId)
+
+	}
+	helpers.RemoveFileByPath(filePath)
+	return lastInsertIDs, nil
+}
+
+func RegisterSettingBatchcsv(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int64, error) {
+	db := orm.NewOrm()
+
+	var lastInsertIDs []int64
+
+	for _, row := range rows {
+		section, ok := row["section"].(string)
+		if !ok {
+			return nil, errors.New("missing 'section' in row")
+		}
+
+		dataType, ok := row["data_type"].(string)
+		if !ok {
+			return nil, errors.New("missing 'data_type' in row")
+		}
+
+		settingData, ok := row["setting_data"].(string)
+		if !ok {
+			return nil, errors.New("missing 'setting_data' in row")
+		}
+
+		res := HomePagesSettingTable{
+			Section:     section,
+			DataType:    dataType,
+			UniqueCode:  "",
+			SettingData: settingData,
+			CreatedBy:   int(user_id),
+			UpdatedBy:   0,
+			CreatedDate: time.Now(),
+			UpdatedDate: time.Now(),
+		}
+
+		_, err := db.Insert(&res)
+		if err != nil {
+			return nil, err
+		}
+
+		lastInsertIDs = append(lastInsertIDs, int64(res.PageSettingId))
+
+		UpdateUniqueCode(res.PageSettingId)
+
+	}
+	helpers.RemoveFileByPath(filePath)
+	return lastInsertIDs, nil
 }

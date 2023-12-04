@@ -6,6 +6,7 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/beego/beego/v2 v2.1.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/lib/pq v1.10.9
 	github.com/smartystreets/goconvey v1.8.1
 	golang.org/x/crypto v0.16.0
@@ -29,6 +30,7 @@ require (
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/shiena/ansicolor v0.0.0-20200904210342-c7312218db18 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
+	github.com/tealeg/xlsx v1.0.5
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect

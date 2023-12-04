@@ -1,0 +1,82 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "beego Test API",
+        "description": "beego has a very cool tools to autogenerate documents for your API\n",
+        "version": "1.0.0",
+        "termsOfService": "http://beego.me/",
+        "contact": {
+            "email": "dwarkeshpatel.siliconithub@gmail.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        }
+    },
+    "basePath": "/v1",
+    "paths": {
+        "/user/add_user[Post]": {
+            "get": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This api used to register the new user\n\u003cbr\u003e",
+                "operationId": "UserController.Register User",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "sample of swagger register user details field",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.InsertUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegisterUserTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "models.RegisterUserTable": {
+            "title": "RegisterUserTable",
+            "type": "object"
+        },
+        "requestStruct.InsertUser": {
+            "title": "InsertUser",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "mobile": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "user",
+            "description": "Operations about Users\n"
+        }
+    ]
+}

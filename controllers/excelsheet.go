@@ -1,10 +1,5 @@
 package controllers
 
-import (
-	"fmt"
-	"time"
-)
-
 // type ExcelController struct {
 // 	beego.Controller
 // }
@@ -57,45 +52,36 @@ import (
 // 	"github.com/360EntSecGroup-Skylar/excelize"
 // )
 
-func formatValue(value interface{}) interface{} {
-	switch v := value.(type) {
-	case time.Time:
-		// Format time as needed
-		return v.Format("2006-01-02 15:04:05")
-	default:
-		return v
-	}
-}
+// func TransformToKeyValuePairs(data interface{}) ([]map[string]interface{}, error) {
 
-func TransformToKeyValuePairs(data interface{}) ([]map[string]interface{}, error) {
+// 	responseData, ok := data.([]struct {
+// 		Section     string    `json:"section"`
+// 		DataType    string    `json:"data_type"`
+// 		SettingData string    `json:"setting_data"`
+// 		CreatedDate time.Time `json:"created_date"`
+// 		UpdatedDate time.Time `json:"updated_date"`
+// 		CreatedBy   string    `json:"created_by"`
+// 	})
 
-	responseData, ok := data.([]struct {
-		Section     string    `json:"section"`
-		DataType    string    `json:"data_type"`
-		SettingData string    `json:"setting_data"`
-		CreatedDate time.Time `json:"created_date"`
-		UpdatedDate time.Time `json:"updated_date"`
-		CreatedBy   string    `json:"created_by"`
-	})
+// 	if !ok {
 
-	if !ok {
-		return nil, fmt.Errorf("invalid data type")
-	}
+// 		return nil, fmt.Errorf("invalid data type")
+// 	}
 
-	result := make([]map[string]interface{}, len(responseData))
-	for i, item := range responseData {
-		result[i] = map[string]interface{}{
-			"section":      item.Section,
-			"data_type":    item.DataType,
-			"setting_data": item.SettingData,
-			"created_date": item.CreatedDate,
-			"updated_date": item.UpdatedDate,
-			"created_by":   item.CreatedBy,
-		}
-	}
+// 	result := make([]map[string]interface{}, len(responseData))
+// 	for i, item := range responseData {
+// 		result[i] = map[string]interface{}{
+// 			"section":      item.Section,
+// 			"data_type":    item.DataType,
+// 			"setting_data": item.SettingData,
+// 			"created_date": item.CreatedDate,
+// 			"updated_date": item.UpdatedDate,
+// 			"created_by":   item.CreatedBy,
+// 		}
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
 // func CreateExcel(data []map[string]interface{}, headers []string, folderPath, fileNamePrefix string) (string, error) {
 // 	file := excelize.NewFile()
@@ -178,3 +164,79 @@ func TransformToKeyValuePairs(data interface{}) ([]map[string]interface{}, error
 
 // 	return filePath, nil
 // }
+
+// func PdfFileCreator(data []map[string]interface{}, headers []string, folderPath, fileNamePrefix string) (string, error) {
+// 	pdf := gofpdf.New("L", "mm", "A4", "")
+// 	pdf.AddPage()
+
+// 	// Set font
+// 	fontSize := 10.0
+// 	pdf.SetFont("Arial", "B", fontSize)
+
+// 	// Calculate total width of the page
+// 	pageWidth, _ := pdf.GetPageSize()
+
+// 	// Calculate and set maximum column widths based on headers
+// 	colWidths := make([]float64, len(headers))
+// 	totalWidth := pageWidth - 20 // Adjust the margin as needed
+// 	for colNum, header := range headers {
+// 		colWidths[colNum] = pdf.GetStringWidth(header) + 6 // Add padding
+// 	}
+
+// 	// Normalize column widths based on the total width
+// 	scaleFactor := totalWidth / SumSliceElements(colWidths)
+// 	for colNum := range colWidths {
+// 		colWidths[colNum] *= scaleFactor
+// 	}
+
+// 	// Add headers
+// 	for colNum, header := range headers {
+// 		pdf.CellFormat(colWidths[colNum], 10, header, "1", 0, "", false, 0, "")
+// 	}
+
+// 	pdf.Ln(-1)
+
+// 	// Set font for data
+// 	pdf.SetFont("Arial", "", fontSize)
+
+// 	// Set a fixed row height
+// 	fixedRowHeight := 10.0 // Adjust as needed
+
+// 	// Add data
+// 	for _, rowData := range data {
+// 		// Add data to PDF with fixed row height
+// 		for colNum, key := range headers {
+// 			if value, ok := rowData[key]; ok {
+// 				cellValue := fmt.Sprintf("%v", formatValue(value))
+// 				pdf.CellFormat(colWidths[colNum], fixedRowHeight, cellValue, "1", 0, "", false, 0, "")
+// 			}
+// 		}
+
+// 		pdf.Ln(-1)
+// 	}
+
+// 	// If filepath not given, it takes the default
+// 	if folderPath == "" {
+// 		folderPath = "FILES/PDF"
+// 	}
+
+// 	// If the folder is not present in the directory, it creates a new folder directory
+// 	if err := os.MkdirAll(folderPath, os.ModePerm); err != nil {
+// 		return "", fmt.Errorf("failed to create folder: %v", err)
+// 	}
+
+// 	// Generate file name
+// 	fileName := fmt.Sprintf("%s_%s.pdf", fileNamePrefix, time.Now().Format("20060102150405"))
+// 	filePath := filepath.Join(folderPath, fileName)
+
+// 	// Save the PDF file
+// 	if err := pdf.OutputFileAndClose(filePath); err != nil {
+// 		return "", err
+// 	}
+
+// 	return filePath, nil
+// }
+
+// Function to calculate the sum of elements in a slice
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

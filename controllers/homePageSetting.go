@@ -7,11 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"strings"
 
-	"github.com/360EntSecGroup-Skylar/excelize"
 	beego "github.com/beego/beego/v2/server/web"
 )
 
@@ -30,7 +28,9 @@ func (u *HomeSettingController) RegisterSettings() {
 		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Parsing Data Error")
 		return
 	}
+
 	json.Unmarshal(u.Ctx.Input.RequestBody, &settings)
+	log.Print(settings, "=========")
 	data_types := strings.ToUpper(settings.DataType)
 	// uploadDir := os.Getenv("uploadHomePageImages")
 	uploadDir := "uploads/Home/files/images"
@@ -148,113 +148,84 @@ func (u *HomeSettingController) DeleteSetting() {
 	helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Try Again")
 }
 
-func (c *HomeSettingController) InsertData() {
-	res_data, _ := models.FetchSetting()
+func (c *HomeSettingController) ExportFile() {
+	var fileTypes requestStruct.FileType
+	if err := c.ParseForm(&fileTypes); err != nil {
+		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Parsing Data Error")
+		return
+	}
 
-	res_s, _ := TransformToKeyValuePairs(res_data)
-	headers := []string{"section", "data_type", "setting_data", "created_date", "updated_date", "created_by"}
-	res_result, _ := helpers.CreateFile(res_s, headers, "", "apps", "xlsx")
-	log.Print(res_result)
+	json.Unmarshal(c.Ctx.Input.RequestBody, &fileTypes)
+	create_file_type := strings.ToUpper(fileTypes.FileType)
 
-	// data, ok := res_data.([][]interface{})
-	// if !ok {
+	if create_file_type == "" {
+		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "FILE TYPE SHOULD NOT BE EMPTY")
+		return
+	}
 
-	// 	c.Data["json"] = map[string]interface{}{"error": "Invalid data type"}
-	// 	c.ServeJSON()
-	// 	return
-	// }
-	// xlsx := excelize.NewFile()
+	if create_file_type == "XLSX" || create_file_type == "PDF" || create_file_type == "CSV" {
+		res_data, _ := models.FetchSetting()
+		res_s, _ := helpers.TransformToKeyValuePairs(res_data)
+		headers := []string{"section", "data_type", "setting_data", "created_date", "updated_date", "created_by"}
+		res_result, _ := helpers.CreateFile(res_s, headers, "", "apps", create_file_type)
+		if res_result == "" {
+			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "File Not Create ! Try Again")
+			return
+		}
+		helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, res_result, "successfully Created file ", "", "")
+		return
+	}
 
-	// sheetName := "Sheet1"
-	// xlsx.SetSheetName("Sheet1", sheetName)
-
-	// for colIndex, headerValue := range header {
-	// 	cellName := fmt.Sprintf("%c%d", 'A'+colIndex, 1)
-	// 	xlsx.SetCellValue(sheetName, cellName, headerValue)
-	// }
-
-	// for rowIndex, row := range data {
-	// 	for colIndex, cellValue := range row {
-	// 		cellName := fmt.Sprintf("%c%d", 'A'+colIndex, rowIndex+2)
-	// 		xlsx.SetCellValue(sheetName, cellName, cellValue)
-	// 	}
-	// }
-
-	// filePath := "excel/file.xlsx"
-	// if err := xlsx.SaveAs(filePath); err != nil {
-	// 	c.Data["json"] = map[string]interface{}{"error": err.Error()}
-	// } else {
-	// 	c.Data["json"] = map[string]interface{}{"success": true, "filePath": filePath}
-	// }
-
-	// c.ServeJSON()
+	helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "IT ONLY CONVERT WITHIN [PDF CSV,XLSX] FILE FORMAT")
 }
 
-func (c *HomeSettingController) InsertData1() {
-
-	data := []struct {
-		Section     string    `json:"section"`
-		DataType    string    `json:"data_type"`
-		SettingData string    `json:"setting_data"`
-		CreatedDate time.Time `json:"created_date"`
-		UpdatedDate time.Time `json:"updated_date"`
-		CreatedBy   string    `json:"created_by"`
-	}{
-		{
-			Section:     "left pannel",
-			DataType:    "html",
-			SettingData: "<div><p>Welcome to The Website</p></div>",
-			CreatedDate: time.Now(),
-			UpdatedDate: time.Now(),
-			CreatedBy:   "Dwarkesh Patel",
-		},
-		{
-			Section:     "middel container",
-			DataType:    "logo",
-			SettingData: "uploads/Home/files/logo/1701150314464851586.jpg",
-			CreatedDate: time.Now(),
-			UpdatedDate: time.Now(),
-			CreatedBy:   "Dwarkesh Patel",
-		},
+func (c *HomeSettingController) ImportFile() {
+	file, fileHeader, err := c.GetFile("import_type")
+	if err != nil {
+		c.Ctx.WriteString("Error uploading file")
+		return
 	}
 
-	xlsx := excelize.NewFile()
-
-	sheetName := "Sheet1"
-	xlsx.SetSheetName("Sheet1", sheetName)
-
-	// Adding headers
-	headers := []string{"Section", "DataType", "SettingData", "CreatedDate", "UpdatedDate", "CreatedBy"}
-	for colIndex, header := range headers {
-		cellName := fmt.Sprintf("%c%d", 'A'+colIndex, 1)
-		xlsx.SetCellValue(sheetName, cellName, header)
+	uploadDir := "FILES/IMPORT"
+	filePath, err := helpers.UploadFile(file, fileHeader, uploadDir)
+	if err != nil {
+		fmt.Println("Error uploading file:", err)
+		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error uploading file")
+		return
 	}
+	defer helpers.RemoveFileByPath(filePath)
 
-	// Adding data rows
-	for rowIndex, row := range data {
-		cellName := fmt.Sprintf("A%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.Section)
-		cellName = fmt.Sprintf("B%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.DataType)
-		cellName = fmt.Sprintf("C%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.SettingData)
-		cellName = fmt.Sprintf("D%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.CreatedDate)
-		cellName = fmt.Sprintf("E%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.UpdatedDate)
-		cellName = fmt.Sprintf("F%d", rowIndex+2)
-		xlsx.SetCellValue(sheetName, cellName, row.CreatedBy)
+	var allRows []map[string]interface{}
+	switch {
+	case strings.HasSuffix(filePath, ".xlsx"):
+		allRows, err = helpers.ReadXLSXFile(filePath)
+		if err != nil {
+			fmt.Println("Error reading XLSX file:", err)
+			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error reading XLSX file")
+			return
+		}
+		result, _ := models.RegisterSettingBatch(requestStruct.HomeSeetingInsert{}, 1, filePath, allRows)
+		if result != nil {
+			helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, "", "File Imported Successfully", "", "")
+			return
+		}
+
+	case strings.HasSuffix(filePath, ".csv"):
+		allRows, err = helpers.ReadCSVFile(filePath)
+		if err != nil {
+			fmt.Println("Error reading CSV file:", err)
+			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error reading CSV file")
+			return
+		}
+		result, _ := models.RegisterSettingBatchcsv(requestStruct.HomeSeetingInsert{}, 1, filePath, allRows)
+		if result != nil {
+			helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, "", "File Imported Successfully", "", "")
+			return
+		}
+
+	default:
+		fmt.Println("Unsupported file format")
+		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Unsupported file format")
+		return
 	}
-
-	// Save the Excel file
-	filePath := "excel/file.xlsx" // Provide the desired file path
-	if err := xlsx.SaveAs(filePath); err != nil {
-		fmt.Println("Error saving Excel file:", err)
-		c.Data["json"] = map[string]interface{}{"error": err.Error()}
-	} else {
-		fmt.Println("Excel file saved successfully:", filePath)
-		c.Data["json"] = map[string]interface{}{"success": true, "filePath": filePath}
-	}
-
-	c.ServeJSON()
 }

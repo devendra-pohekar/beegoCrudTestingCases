@@ -54,7 +54,9 @@ func (c *UserController) Login() {
 		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Please Verified Email Address")
 		return
 	}
+
 	tokenExpire := time.Now().Add(1 * time.Hour)
+	c.SetSession("user_login", JwtClaim{})
 	claims := &JwtClaim{Email: loginUserData.Email, UserID: loginUserData.UserId, StandardClaims: jwt.StandardClaims{
 		ExpiresAt: tokenExpire.Unix(),
 	}}
@@ -71,6 +73,13 @@ func (c *UserController) Login() {
 	c.ServeJSON()
 }
 
+// RegisterUser...
+// @Title Register User
+// @Description This api used to register the new user
+// @Param body body  requestStruct.InsertUser false "sample of swagger register user details field"
+// @Success 200 {object} models.RegisterUserTable
+// @Failure 403
+// @router /add_user[Post]
 func (u *UserController) RegisterUser() {
 	var user requestStruct.InsertUser
 	if err := u.ParseForm(&user); err != nil {
