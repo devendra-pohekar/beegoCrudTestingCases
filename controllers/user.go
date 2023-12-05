@@ -38,6 +38,13 @@ type JwtClaim struct {
 
 var secretKey = []byte("devendra_secretkey")
 
+// Login...
+// @Title Login User
+// @Description This is a Login API for User
+// @Param body body requestStruct.LoginUser false
+// @Success 200{object}models.UserMasterTable
+// @Failure 403
+// @router /login [post]
 func (c *UserController) Login() {
 	var user requestStruct.LoginUser
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &user); err != nil {
@@ -56,7 +63,7 @@ func (c *UserController) Login() {
 	}
 
 	tokenExpire := time.Now().Add(1 * time.Hour)
-	c.SetSession("user_login", JwtClaim{})
+	c.SetSession("user_login", loginUserData.Email)
 	claims := &JwtClaim{Email: loginUserData.Email, UserID: loginUserData.UserId, StandardClaims: jwt.StandardClaims{
 		ExpiresAt: tokenExpire.Unix(),
 	}}
@@ -68,8 +75,8 @@ func (c *UserController) Login() {
 	}
 
 	data := map[string]interface{}{"User_Data": token.Claims, "Token": tokenString}
-
-	c.Data["json"] = map[string]interface{}{"data": data}
+	session_user_ := c.GetSession("user_login")
+	c.Data["json"] = map[string]interface{}{"data": data, "session": session_user_}
 	c.ServeJSON()
 }
 
@@ -79,7 +86,7 @@ func (c *UserController) Login() {
 // @Param body body  requestStruct.InsertUser false "sample of swagger register user details field"
 // @Success 200 {object} models.RegisterUserTable
 // @Failure 403
-// @router /add_user[Post]
+// @router /add_user [post]
 func (u *UserController) RegisterUser() {
 	var user requestStruct.InsertUser
 	if err := u.ParseForm(&user); err != nil {
@@ -114,6 +121,13 @@ func (u *UserController) RegisterUser() {
 // 	}
 // }
 
+// SendMailForm
+// @Title Send Mail on the User Register Email Address for email verification process
+// @Description In Email verification of user ,in this process we send an email on the register mail address for verification .the given email id is valid or not
+// @Param body body requestStruct.SendMailUser false "In this process we take email address and send email on the register email address with code "
+// @Success 200 {object} models.UserMasterTable
+// @Failure 403
+// @router /send_otp [post]
 func (c *UserController) SendMailForm() {
 	var requestData requestStruct.SendMailUser
 
@@ -140,6 +154,13 @@ func (c *UserController) SendMailForm() {
 
 }
 
+// VerifyEmail
+// @Title Verify User Email address after Registration
+// @Description This function work after Registration of user to check the user email address is valid or not .Here we verify the code that we send already on user email address.if user email is verified than user can perform operation after login
+// @Param body body requestStruct.EmailVerfiy false "we verify the code than user send "
+// @Success 200 {object} models.UserMasterTable
+// @Failure 403
+// @router /verify_email [post]
 func (c *UserController) VerifyEmail() {
 	var requestData requestStruct.EmailVerfiy
 
@@ -159,6 +180,13 @@ func (c *UserController) VerifyEmail() {
 
 }
 
+// SendMailForForgotPassword
+// @Title Send Mail for ForgotPassword
+// @Description This function work to send an Email on Register User Email Address with code
+// @Param body body  requestStruct.SendMailForgotPassword false "here users email address send as parameter for email sending"
+// @Success 200 {object} models.UserMasterTable
+// @Failure 403
+// @router /send_otp_forgot [post]
 func (c *UserController) SendMailForForgotPassword() {
 	var requestData requestStruct.SendMailForgotPassword
 	if err := c.ParseForm(&requestData); err != nil {
@@ -180,6 +208,13 @@ func (c *UserController) SendMailForForgotPassword() {
 
 }
 
+// ForgotPasswordUpdate
+// @Title SetNewPassword
+// @Description This function used for to update or to set new password.When ths user send the otp and newpassword
+// @Param body body requestStruct.ForgotPassword false "here user send the otp and newpassword ,than this function update the password as newpassword for user"
+// @Success 200 {object} models.UserMasterTable
+// @Failure 403
+// @router /verify_otp_forgot [post]
 func (c *UserController) ForgotPasswordUpdate() {
 	var requestData requestStruct.ForgotPassword
 	if err := c.ParseForm(&requestData); err != nil {
@@ -199,4 +234,19 @@ func (c *UserController) ForgotPasswordUpdate() {
 	}
 	helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "OTP IS Expired PLEASE GO ON FORGOT PASSWORD SECTION")
 
+}
+
+// LogoutUser
+// @Title Logout User
+// @Description This function used for to logout user
+// @Success 200 {object} models.UserMasterTable
+// @Failure 403
+// @router /logout_user [post]
+func (u *UserController) LogoutUser() {
+	err := u.DestroySession()
+	if err != nil {
+		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Not Logout User")
+		return
+	}
+	helpers.ApiSuccessResponse(u.Ctx.ResponseWriter, "", "User Logout Successfully", "", "")
 }

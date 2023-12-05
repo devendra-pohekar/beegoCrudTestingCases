@@ -1,22 +1,222 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "beego Test API",
-        "description": "beego has a very cool tools to autogenerate documents for your API\n",
-        "version": "1.0.0",
-        "termsOfService": "http://beego.me/",
-        "contact": {
-            "email": "dwarkeshpatel.siliconithub@gmail.com"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        }
+        "contact": {}
     },
     "basePath": "/v1",
     "paths": {
-        "/user/add_user[Post]": {
-            "get": {
+        "/homepage/export": {
+            "post": {
+                "tags": [
+                    "homepage"
+                ],
+                "description": "In this function after login user  can Export File in Home page settings\n\u003cbr\u003e",
+                "operationId": "HomeSettingController.After Login User Can Export File in Home Page settings",
+                "parameters": [
+                    {
+                        "in": "formData",
+                        "name": "file_type",
+                        "description": "Here only select file within [XLSX,CSV,PDF]",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "limit",
+                        "description": "How Much you want to export data Ex.10",
+                        "required": true,
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Bearer YourAccessToken",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.HomePagesSettingTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/homepage/fetch_settings": {
+            "post": {
+                "tags": [
+                    "homepage"
+                ],
+                "description": "In this function after login user  can Fetch Data Home page settings\n\u003cbr\u003e",
+                "operationId": "HomeSettingController.After Login User Can Fetch Data Home Page settings",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Bearer YourAccessToken",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.HomePagesSettingTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/homepage/import": {
+            "post": {
+                "tags": [
+                    "homepage"
+                ],
+                "description": "In this function after login user  can Import File in Home page settings\n\u003cbr\u003e",
+                "operationId": "HomeSettingController.After Login User Can Import File in Home Page settings",
+                "parameters": [
+                    {
+                        "in": "formData",
+                        "name": "import_type",
+                        "description": "Here only select file within [XLSX,CSV]",
+                        "required": true,
+                        "type": "file"
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Bearer YourAccessToken",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.HomePagesSettingTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/homepage/register_settings": {
+            "post": {
+                "tags": [
+                    "homepage"
+                ],
+                "description": "In this function after login can register Home page settings\n\u003cbr\u003e",
+                "operationId": "HomeSettingController.After Login User Can Register Home Page settings",
+                "parameters": [
+                    {
+                        "in": "formData",
+                        "name": "setting_data",
+                        "description": "body for file",
+                        "type": "file"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "data_type",
+                        "description": "body for file",
+                        "type": "string"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "section",
+                        "description": "body for file",
+                        "type": "string"
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Bearer YourAccessToken",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.HomePagesSettingTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/homepage/update_settings": {
+            "post": {
+                "tags": [
+                    "homepage"
+                ],
+                "description": "In this function after login user  can update Home page settings\n\u003cbr\u003e",
+                "operationId": "HomeSettingController.After Login User Can Update Home Page settings",
+                "parameters": [
+                    {
+                        "in": "formData",
+                        "name": "setting_data",
+                        "description": "body for file",
+                        "type": "file"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "data_type",
+                        "description": "body for file",
+                        "type": "string"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "section",
+                        "description": "body for file",
+                        "type": "string"
+                    },
+                    {
+                        "in": "formData",
+                        "name": "setting_id",
+                        "description": "body for file",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "description": "Bearer YourAccessToken",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.HomePagesSettingTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/add_user": {
+            "post": {
                 "tags": [
                     "user"
                 ],
@@ -44,12 +244,277 @@
                     }
                 }
             }
+        },
+        "/user/login": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This is a Login API for User\n\u003cbr\u003e",
+                "operationId": "UserController.Login User",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "false",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.LoginUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200{object}models.UserMasterTable": {
+                        "description": ""
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/logout_user": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This function used for to logout user\n\u003cbr\u003e",
+                "operationId": "UserController.Logout User",
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserMasterTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/send_otp": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "In Email verification of user ,in this process we send an email on the register mail address for verification .the given email id is valid or not\n\u003cbr\u003e",
+                "operationId": "UserController.Send Mail on the User Register Email Address for email verification process",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "In this process we take email address and send email on the register email address with code",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.SendMailUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserMasterTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/send_otp_forgot": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This function work to send an Email on Register User Email Address with code\n\u003cbr\u003e",
+                "operationId": "UserController.Send Mail for ForgotPassword",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "here users email address send as parameter for email sending",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.SendMailForgotPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserMasterTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/verify_email": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This function work after Registration of user to check the user email address is valid or not .Here we verify the code that we send already on user email address.if user email is verified than user can perform operation after login\n\u003cbr\u003e",
+                "operationId": "UserController.Verify User Email address after Registration",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "we verify the code than user send",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.EmailVerfiy"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserMasterTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/user/verify_otp_forgot": {
+            "post": {
+                "tags": [
+                    "user"
+                ],
+                "description": "This function used for to update or to set new password.When ths user send the otp and newpassword\n\u003cbr\u003e",
+                "operationId": "UserController.SetNewPassword",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "here user send the otp and newpassword ,than this function update the password as newpassword for user",
+                        "schema": {
+                            "$ref": "#/definitions/requestStruct.ForgotPassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.UserMasterTable"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
         }
     },
     "definitions": {
+        "models.HomePagesSettingTable": {
+            "title": "HomePagesSettingTable",
+            "type": "object",
+            "properties": {
+                "CreatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "CreatedDate": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "DataType": {
+                    "type": "string"
+                },
+                "PageSettingId": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Section": {
+                    "type": "string"
+                },
+                "SettingData": {
+                    "type": "string"
+                },
+                "UniqueCode": {
+                    "type": "string"
+                },
+                "UpdatedBy": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "UpdatedDate": {
+                    "type": "string",
+                    "format": "datetime"
+                }
+            }
+        },
         "models.RegisterUserTable": {
             "title": "RegisterUserTable",
             "type": "object"
+        },
+        "models.UserMasterTable": {
+            "title": "UserMasterTable",
+            "type": "object",
+            "properties": {
+                "CreatedDate": {
+                    "type": "string",
+                    "format": "datetime"
+                },
+                "Email": {
+                    "type": "string"
+                },
+                "FirstName": {
+                    "type": "string"
+                },
+                "IsVerified": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "LastName": {
+                    "type": "string"
+                },
+                "Mobile": {
+                    "type": "string"
+                },
+                "OtpCode": {
+                    "type": "string"
+                },
+                "Password": {
+                    "type": "string"
+                },
+                "UserId": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
+        "requestStruct.EmailVerfiy": {
+            "title": "EmailVerfiy",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestStruct.ForgotPassword": {
+            "title": "ForgotPassword",
+            "type": "object",
+            "properties": {
+                "new_password": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                }
+            }
         },
         "requestStruct.InsertUser": {
             "title": "InsertUser",
@@ -68,6 +533,39 @@
                     "type": "string"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestStruct.LoginUser": {
+            "title": "LoginUser",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestStruct.SendMailForgotPassword": {
+            "title": "SendMailForgotPassword",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestStruct.SendMailUser": {
+            "title": "SendMailUser",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "user_name": {
                     "type": "string"
                 }
             }

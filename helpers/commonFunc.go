@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	beego "github.com/beego/beego/v2/server/web"
+
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/beego/beego/v2/server/web/context"
 	"github.com/dgrijalva/jwt-go"
@@ -821,7 +823,8 @@ func GetDownloadsFolderPath() (string, error) {
 /*end pending download file in system folder*/
 
 /*-------------------------------XLSX AND CSV FILE READING FUNCTION*/
-func ReadXLSXFile(filePath string) ([]map[string]interface{}, error) {
+
+func ReadXLSXFiles(filePath string) ([]map[string]interface{}, error) {
 	xlFile, err := xlsx.OpenFile(filePath)
 	if err != nil {
 		return nil, err
@@ -834,6 +837,44 @@ func ReadXLSXFile(filePath string) ([]map[string]interface{}, error) {
 			rowData := make(map[string]interface{})
 			for index, cell := range row.Cells {
 				rowData[fmt.Sprintf("Column%d", index+1)] = cell.String()
+			}
+
+			allRows = append(allRows, rowData)
+		}
+	}
+
+	return allRows, nil
+}
+
+func ReadXLSXFile(filePath string) ([]map[string]interface{}, error) {
+	xlFile, err := xlsx.OpenFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var allRows []map[string]interface{}
+
+	// Assume the first row is the header
+	var headerRow []string
+	if len(xlFile.Sheets) > 0 && len(xlFile.Sheets[0].Rows) > 0 {
+		headerRow = make([]string, len(xlFile.Sheets[0].Rows[0].Cells))
+		for index, cell := range xlFile.Sheets[0].Rows[0].Cells {
+			headerRow[index] = cell.String()
+		}
+	}
+
+	for _, sheet := range xlFile.Sheets {
+		for rowIndex, row := range sheet.Rows {
+			if rowIndex == 0 {
+				// Skip the header row
+				continue
+			}
+
+			rowData := make(map[string]interface{})
+			for index, cell := range row.Cells {
+				if index < len(headerRow) {
+					rowData[headerRow[index]] = cell.String()
+				}
 			}
 
 			allRows = append(allRows, rowData)
@@ -876,3 +917,27 @@ func ReadCSVFile(filePath string) ([]map[string]interface{}, error) {
 }
 
 /*END XLSX AND CSV FILE READING FUNCTION END-----------------------*/
+
+func SetSessionByKeyValue(key string, value string, w http.ResponseWriter, r *http.Request) {
+	session, _ := beego.GlobalSessions.SessionStart(w, r)
+	err := session.Set(r.Context(), key, value)
+	if err != nil {
+		log.Print("error occured in session create time")
+	}
+	session.SessionRelease(r.Context(), w)
+}
+
+func ExtractKeys(data []map[string]interface{}) []string {
+	keys := make(map[string]struct{})
+	for _, item := range data {
+		for key := range item {
+			keys[key] = struct{}{}
+		}
+	}
+	var result []string
+	for key := range keys {
+		result = append(result, key)
+	}
+	// sort.Strings(result)
+	return result
+}

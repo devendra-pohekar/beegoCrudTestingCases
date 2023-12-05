@@ -47,7 +47,6 @@ package routers_test
 // 	endPoint := "/v1/user/add_user"
 // 	var jsonStr = []byte(`{"first_name":"Dwarkesh", "last_name":"Patel", "email":"dwarkesh0007@gmail.com", "mobile":"1234324343543", "password":"1234567"}`)
 // 	result := RequestTestingFunction(endPoint, "POST", jsonStr, "post:RegisterUser", controller)
-// 	log.Print(result)
 
 // }
 

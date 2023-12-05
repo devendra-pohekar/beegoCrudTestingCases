@@ -6,7 +6,6 @@ import (
 	requestStruct "crud/requstStruct"
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"strings"
 
@@ -20,7 +19,23 @@ type HomeSettingController struct {
 	beego.Controller
 }
 
+// RegisterSettings
+// @Title After Login User Can Register Home Page settings
+// @Description In this function after login can register Home page settings
+// @Param	setting_data   formData 	file	false		"body for file"
+// @Param	data_type   formData 	string	false		"body for file"
+// @Param	section   formData 	string	false		"body for file"
+// @Param   Authorization   header  string  true  "Bearer YourAccessToken"
+// @Success 200 {object} models.HomePagesSettingTable
+// @Failure 403
+// @router /register_settings [post]
 func (u *HomeSettingController) RegisterSettings() {
+	logedIN := u.GetSession("user_login")
+	if logedIN == "" {
+		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Login ")
+		return
+	}
+
 	var settings requestStruct.HomeSeetingInsert
 	var filePath string
 
@@ -30,7 +45,6 @@ func (u *HomeSettingController) RegisterSettings() {
 	}
 
 	json.Unmarshal(u.Ctx.Input.RequestBody, &settings)
-	log.Print(settings, "=========")
 	data_types := strings.ToUpper(settings.DataType)
 	// uploadDir := os.Getenv("uploadHomePageImages")
 	uploadDir := "uploads/Home/files/images"
@@ -65,7 +79,23 @@ func (u *HomeSettingController) RegisterSettings() {
 	helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Try Again")
 }
 
+// UpdateSettings
+// @Title After Login User Can Update Home Page settings
+// @Description In this function after login user  can update Home page settings
+// @Param	setting_data   formData 	file	false		"body for file"
+// @Param	data_type   formData 	string	false		"body for file"
+// @Param	section   formData 	string	false		"body for file"
+// @Param	setting_id   formData 	int		false		"body for file"
+// @Param   Authorization   header  string  true  "Bearer YourAccessToken"
+// @Success 200 {object} models.HomePagesSettingTable
+// @Failure 403
+// @router /update_settings [post]
 func (u *HomeSettingController) UpdateSettings() {
+	logedIN := u.GetSession("user_login")
+	if logedIN == "" {
+		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Login ")
+		return
+	}
 	var settings requestStruct.HomeSeetingUpdate
 	var filePath string
 
@@ -114,7 +144,19 @@ func (u *HomeSettingController) UpdateSettings() {
 	helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Try Again")
 }
 
+// FetchSettings
+// @Title After Login User Can Fetch Data Home Page settings
+// @Description In this function after login user  can Fetch Data Home page settings
+// @Param   Authorization   header  string  true  "Bearer YourAccessToken"
+// @Success 200 {object} models.HomePagesSettingTable
+// @Failure 403
+// @router /fetch_settings [post]
 func (u *HomeSettingController) FetchSettings() {
+	logedIN := u.GetSession("user_login")
+	if logedIN == nil {
+		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Login ")
+		return
+	}
 	var search requestStruct.HomeSeetingSearch
 	if err := u.ParseForm(&search); err != nil {
 		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Parsing Data Error")
@@ -124,7 +166,6 @@ func (u *HomeSettingController) FetchSettings() {
 
 	result, _ := models.FetchSetting()
 
-	log.Print(result, "========================")
 	if result != nil {
 
 		helpers.ApiSuccessResponse(u.Ctx.ResponseWriter, result, "Home Setting Found Successfully", "", "")
@@ -134,6 +175,12 @@ func (u *HomeSettingController) FetchSettings() {
 }
 
 func (u *HomeSettingController) DeleteSetting() {
+
+	logedIN := u.GetSession("user_login")
+	if logedIN == "" {
+		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Login ")
+		return
+	}
 	var home_settings requestStruct.HomeSeetingDelete
 	if err := u.ParseForm(&home_settings); err != nil {
 		helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Parsing Data Error")
@@ -148,7 +195,21 @@ func (u *HomeSettingController) DeleteSetting() {
 	helpers.ApiFailedResponse(u.Ctx.ResponseWriter, "Please Try Again")
 }
 
+// ExportFile
+// @Title After Login User Can Export File in Home Page settings
+// @Description In this function after login user  can Export File in Home page settings
+// @Param file_type  formData string true "Here only select file within [XLSX,CSV,PDF]"
+// @Param limit  formData int true "How Much you want to export data Ex.10"
+// @Param   Authorization   header  string  true  "Bearer YourAccessToken"
+// @Success 200 {object} models.HomePagesSettingTable
+// @Failure 403
+// @router /export [post]
 func (c *HomeSettingController) ExportFile() {
+	// logedIN := c.GetSession("user_login")
+	// if logedIN == "" {
+	// 	helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Please Login ")
+	// 	return
+	// }
 	var fileTypes requestStruct.FileType
 	if err := c.ParseForm(&fileTypes); err != nil {
 		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Parsing Data Error")
@@ -164,10 +225,11 @@ func (c *HomeSettingController) ExportFile() {
 	}
 
 	if create_file_type == "XLSX" || create_file_type == "PDF" || create_file_type == "CSV" {
-		res_data, _ := models.FetchSetting()
+		res_data, _ := models.ExportData(fileTypes.Limit)
 		res_s, _ := helpers.TransformToKeyValuePairs(res_data)
-		headers := []string{"section", "data_type", "setting_data", "created_date", "updated_date", "created_by"}
-		res_result, _ := helpers.CreateFile(res_s, headers, "", "apps", create_file_type)
+		header := helpers.ExtractKeys(res_s)
+
+		res_result, _ := helpers.CreateFile(res_s, header, "", "apps", create_file_type)
 		if res_result == "" {
 			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "File Not Create ! Try Again")
 			return
@@ -179,7 +241,20 @@ func (c *HomeSettingController) ExportFile() {
 	helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "IT ONLY CONVERT WITHIN [PDF CSV,XLSX] FILE FORMAT")
 }
 
+// ImportFile
+// @Title After Login User Can Import File in Home Page settings
+// @Description In this function after login user  can Import File in Home page settings
+// @Param import_type  formData file true "Here only select file within [XLSX,CSV]"
+// @Param   Authorization   header  string  true  "Bearer YourAccessToken"
+// @Success 200 {object} models.HomePagesSettingTable
+// @Failure 403
+// @router /import [post]
 func (c *HomeSettingController) ImportFile() {
+	// logedIN := c.GetSession("user_login")
+	// if logedIN == "" {
+	// 	helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Please Login ")
+	// 	return
+	// }
 	file, fileHeader, err := c.GetFile("import_type")
 	if err != nil {
 		c.Ctx.WriteString("Error uploading file")
@@ -196,6 +271,7 @@ func (c *HomeSettingController) ImportFile() {
 	defer helpers.RemoveFileByPath(filePath)
 
 	var allRows []map[string]interface{}
+
 	switch {
 	case strings.HasSuffix(filePath, ".xlsx"):
 		allRows, err = helpers.ReadXLSXFile(filePath)
@@ -204,7 +280,7 @@ func (c *HomeSettingController) ImportFile() {
 			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error reading XLSX file")
 			return
 		}
-		result, _ := models.RegisterSettingBatch(requestStruct.HomeSeetingInsert{}, 1, filePath, allRows)
+		result, _ := models.RegisterSettingBatch(requestStruct.HomeSeetingInsert{}, 35, filePath, allRows)
 		if result != nil {
 			helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, "", "File Imported Successfully", "", "")
 			return
