@@ -5,7 +5,8 @@ import (
 	requestStruct "crud/requstStruct"
 	"errors"
 	"fmt"
-	"os"
+	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,7 +43,9 @@ func RegisterSetting(c requestStruct.HomeSeetingInsert, user_id float64, file_pa
 func UpdateUniqueCode(user_id int) (int64, error) {
 	db := orm.NewOrm()
 
-	unique_codes := helpers.UniqueCode(user_id, os.Getenv("homePageModule"))
+	// unique_codes := helpers.UniqueCode(user_id, os.Getenv("homePageModule"))
+	unique_codes := helpers.UniqueCode(user_id, "homePageModule")
+
 	home_page_setting := HomePagesSettingTable{PageSettingId: user_id}
 	if db.Read(&home_page_setting) == nil {
 		home_page_setting.UniqueCode = unique_codes
@@ -220,6 +223,7 @@ func UpdateSettings(c requestStruct.HomeSeetingUpdate, file_path interface{}, us
 
 func RegisterSettingBatch(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int64, error) {
 	db := orm.NewOrm()
+	log.Print(rows, "--------------------------------------------------")
 	var lastInsertIDs []int64
 	for _, row := range rows {
 
@@ -335,7 +339,7 @@ func RegisterSettingBatchcsv(c requestStruct.HomeSeetingInsert, user_id float64,
 	return lastInsertIDs, nil
 }
 
-func ExportData(limit int) (interface{}, error) {
+func ExportData(limit, starting_FromRow int) (interface{}, error) {
 	db := orm.NewOrm()
 	var homeResponse []struct {
 		PageSettingId int       `json:"page_setting_id"`
@@ -347,7 +351,27 @@ func ExportData(limit int) (interface{}, error) {
 		CreatedBy     string    `json:"created_by"`
 	}
 
-	query := fmt.Sprintf(`SELECT hpst.page_setting_id as page_setting_id, hpst.section, hpst.data_type, hpst.setting_data, hpst.created_date, hpst.updated_date, concat(umt.first_name,' ',umt.last_name) as created_by FROM home_pages_setting_table as hpst LEFT JOIN user_master_table as umt ON umt.user_id = hpst.created_by LIMIT %d`, limit)
+	if limit <= 0 {
+		limit = 20
+	}
+
+	var query string
+	if starting_FromRow <= 0 {
+
+		query = fmt.Sprintf(`SELECT hpst.page_setting_id, hpst.section, hpst.data_type, hpst.setting_data, hpst.created_date, hpst.updated_date, concat(umt.first_name,' ',umt.last_name) as created_by 
+			FROM home_pages_setting_table as hpst 
+			LEFT JOIN user_master_table as umt ON umt.user_id = hpst.created_by  
+			ORDER BY hpst.page_setting_id 
+			LIMIT %d`, limit)
+	} else {
+
+		query = fmt.Sprintf(`SELECT hpst.page_setting_id, hpst.section, hpst.data_type, hpst.setting_data, hpst.created_date, hpst.updated_date, concat(umt.first_name,' ',umt.last_name) as created_by 
+			FROM home_pages_setting_table as hpst 
+			LEFT JOIN user_master_table as umt ON umt.user_id = hpst.created_by  
+			WHERE hpst.page_setting_id >= %d
+			ORDER BY hpst.page_setting_id 
+			LIMIT %d`, starting_FromRow, limit)
+	}
 
 	_, err := db.Raw(query).QueryRows(&homeResponse)
 
@@ -355,7 +379,7 @@ func ExportData(limit int) (interface{}, error) {
 		return nil, err
 	}
 	if len(homeResponse) == 0 {
-		return "Not Found Cars", nil
+		return "Not Found Records", nil
 	}
 	return homeResponse, nil
 }
@@ -378,19 +402,26 @@ func ExportDatas(limit int) (interface{}, error) {
 	return homeResponse, nil
 }
 
-func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int64, []int64, error) {
+func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int, []int, error) {
 	db := orm.NewOrm()
-	var insertIDs, updateIDs []int64
+
+	var insertIDs, updateIDs []int
 
 	for _, row := range rows {
+
 		section, ok := row["section"].(string)
 		if !ok {
 			return nil, nil, errors.New("missing 'section' in row")
 		}
 
-		pageSettingID, ok := row["page_setting_id"].(float64)
+		pageSettingIDStr, ok := row["page_setting_id"].(string)
 		if !ok {
-			return nil, nil, errors.New("missing 'page_setting_id' in row")
+			return nil, nil, errors.New("missing or invalid 'page_setting_id' in row")
+		}
+
+		pageSettingID, errss := strconv.ParseInt(pageSettingIDStr, 10, 64)
+		if errss != nil {
+			return nil, nil, errors.New("invalid 'page_setting_id' format")
 		}
 
 		dataType, ok := row["data_type"].(string)
@@ -403,12 +434,12 @@ func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, 
 			return nil, nil, errors.New("missing 'setting_data' in row")
 		}
 
-		// Check if the record already exists based on pageSettingID
 		var existingRecord HomePagesSettingTable
 		err := db.QueryTable("home_pages_setting_table").Filter("page_setting_id", pageSettingID).One(&existingRecord)
 
 		if err == nil {
 			// If the record exists, update it
+
 			existingRecord.Section = section
 			existingRecord.DataType = dataType
 			existingRecord.SettingData = settingData
@@ -420,9 +451,10 @@ func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, 
 				return nil, nil, err
 			}
 
-			updateIDs = append(updateIDs, int64(existingRecord.PageSettingId))
+			updateIDs = append(updateIDs, int(existingRecord.PageSettingId))
 		} else {
 			// If the record doesn't exist, insert a new one
+
 			newRecord := HomePagesSettingTable{
 				PageSettingId: int(pageSettingID), // Assuming PageSettingId is an int in your struct
 				Section:       section,
@@ -440,7 +472,7 @@ func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, 
 				return nil, nil, err
 			}
 
-			insertIDs = append(insertIDs, int64(newRecord.PageSettingId))
+			insertIDs = append(insertIDs, int(newRecord.PageSettingId))
 
 			UpdateUniqueCode(newRecord.PageSettingId)
 		}
@@ -449,4 +481,320 @@ func RegisterSettingBatchss(c requestStruct.HomeSeetingInsert, user_id float64, 
 	helpers.RemoveFileByPath(filePath)
 
 	return insertIDs, updateIDs, nil
+}
+
+func RegisterSettingBatchssss(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int, []int, error) {
+	db := orm.NewOrm()
+	var insertIDs, updateIDs []int
+
+	for _, row := range rows {
+		section, ok := row["section"].(string)
+		if !ok {
+			return nil, nil, errors.New("missing 'section' in row")
+		}
+		pageSettingIDStr, ok := row["page_setting_id"].(string)
+		if !ok {
+			/* If page_setting_id is missing, treat it as a new record with auto-incremented ID*/
+			newRecord := HomePagesSettingTable{
+				Section:     section,
+				DataType:    row["data_type"].(string),
+				SettingData: row["setting_data"].(string),
+				CreatedBy:   int(user_id),
+				UpdatedBy:   0,
+				CreatedDate: time.Now(),
+				UpdatedDate: time.Now(),
+			}
+
+			_, err := db.Insert(&newRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			insertIDs = append(insertIDs, int(newRecord.PageSettingId))
+
+			UpdateUniqueCode(newRecord.PageSettingId)
+			continue // Skip the rest of the loop for this row
+		}
+
+		/* Convert page_setting_id to int64*/
+		pageSettingID, err := strconv.ParseInt(pageSettingIDStr, 10, 64)
+		if err != nil {
+			return nil, nil, errors.New("invalid 'page_setting_id' format")
+		}
+
+		var existingRecord HomePagesSettingTable
+		err = db.QueryTable("home_pages_setting_table").Filter("page_setting_id", pageSettingID).One(&existingRecord)
+
+		if err == nil {
+			/* If the record exists, update it*/
+			existingRecord.Section = section
+			existingRecord.DataType = row["data_type"].(string)
+			existingRecord.SettingData = row["setting_data"].(string)
+			existingRecord.UpdatedBy = int(user_id)
+			existingRecord.UpdatedDate = time.Now()
+
+			_, err := db.Update(&existingRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			updateIDs = append(updateIDs, int(existingRecord.PageSettingId))
+		} else {
+			/* If the record doesn't exist, insert a new one*/
+			newRecord := HomePagesSettingTable{
+				PageSettingId: int(pageSettingID),
+				Section:       section,
+				DataType:      row["data_type"].(string),
+				UniqueCode:    "",
+				SettingData:   row["setting_data"].(string),
+				CreatedBy:     int(user_id),
+				UpdatedBy:     0,
+				CreatedDate:   time.Now(),
+				UpdatedDate:   time.Now(),
+			}
+
+			_, err := db.Insert(&newRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			insertIDs = append(insertIDs, int(newRecord.PageSettingId))
+
+			UpdateUniqueCode(newRecord.PageSettingId)
+		}
+	}
+
+	helpers.RemoveFileByPath(filePath)
+
+	return insertIDs, updateIDs, nil
+}
+
+func RegisterSettingBatchsssss(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int, []int, error) {
+	db := orm.NewOrm()
+	var insertIDs, updateIDs []int
+
+	/* Fetch all existing page_setting_id values */
+
+	existingIDs := make(map[int]bool)
+	var existingRecords []HomePagesSettingTable
+	_, err := db.QueryTable("home_pages_setting_table").All(&existingRecords)
+	if err != nil && err != orm.ErrNoRows {
+		return nil, nil, err
+	}
+	for _, record := range existingRecords {
+		existingIDs[record.PageSettingId] = true
+	}
+
+	for _, row := range rows {
+		section, ok := row["section"].(string)
+		if !ok {
+			return nil, nil, errors.New("missing 'section' in row")
+		}
+		pageSettingIDStr, ok := row["page_setting_id"].(string)
+		if !ok {
+			// If page_setting_id is missing, treat it as a new record with auto-incremented ID
+			newRecord := HomePagesSettingTable{
+				Section:     section,
+				DataType:    row["data_type"].(string),
+				SettingData: row["setting_data"].(string),
+				CreatedBy:   int(user_id),
+				UpdatedBy:   0,
+				CreatedDate: time.Now(),
+				UpdatedDate: time.Now(),
+			}
+
+			_, err := db.Insert(&newRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			insertIDs = append(insertIDs, int(newRecord.PageSettingId))
+
+			UpdateUniqueCode(newRecord.PageSettingId)
+			continue // Skip the rest of the loop for this row
+		}
+
+		// Convert page_setting_id to int64
+		pageSettingID, err := strconv.ParseInt(pageSettingIDStr, 10, 64)
+		if err != nil {
+			return nil, nil, errors.New("invalid 'page_setting_id' format")
+		}
+
+		if _, exists := existingIDs[int(pageSettingID)]; exists {
+			// If the record exists, update it
+			var existingRecord HomePagesSettingTable
+			err := db.QueryTable("home_pages_setting_table").Filter("page_setting_id", int(pageSettingID)).One(&existingRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			existingRecord.Section = section
+			existingRecord.DataType = row["data_type"].(string)
+			existingRecord.SettingData = row["setting_data"].(string)
+			existingRecord.UpdatedBy = int(user_id)
+			existingRecord.UpdatedDate = time.Now()
+
+			_, err = db.Update(&existingRecord)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			updateIDs = append(updateIDs, int(existingRecord.PageSettingId))
+		}
+		// else {
+		// 	// If the record doesn't exist, insert a new one
+		// 	newRecord := HomePagesSettingTable{
+		// 		PageSettingId: int(pageSettingID),
+		// 		Section:       section,
+		// 		DataType:      row["data_type"].(string),
+		// 		UniqueCode:    "",
+		// 		SettingData:   row["setting_data"].(string),
+		// 		CreatedBy:     int(user_id),
+		// 		UpdatedBy:     0,
+		// 		CreatedDate:   time.Now(),
+		// 		UpdatedDate:   time.Now(),
+		// 	}
+
+		// 	_, err := db.Insert(&newRecord)
+		// 	if err != nil {
+		// 		return nil, nil, err
+		// 	}
+
+		// 	insertIDs = append(insertIDs, int(newRecord.PageSettingId))
+
+		// 	UpdateUniqueCode(newRecord.PageSettingId)
+		// }
+	}
+
+	helpers.RemoveFileByPath(filePath)
+
+	return insertIDs, updateIDs, nil
+}
+
+func RegisterSettingBatchsss(c requestStruct.HomeSeetingInsert, user_id float64, filePath string, rows []map[string]interface{}) ([]int, []int, error) {
+	db := orm.NewOrm()
+	var insertIDs, updateIDs []int
+
+	// Begin a transaction
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	// Fetch existing page_setting_ids for indexing
+	existingIDs := make(map[int]bool)
+	var existingRecords []HomePagesSettingTable
+	_, err = db.QueryTable("home_pages_setting_table").All(&existingRecords)
+	if err != nil && err != orm.ErrNoRows {
+		tx.Rollback()
+		return nil, nil, err
+	}
+	for _, record := range existingRecords {
+		existingIDs[record.PageSettingId] = true
+	}
+
+	// Batch processing
+	for _, row := range rows {
+		section, ok := row["section"].(string)
+		if !ok {
+			tx.Rollback()
+			return nil, nil, errors.New("missing 'section' in row")
+		}
+		pageSettingIDStr, ok := row["page_setting_id"].(string)
+		if !ok {
+			// If page_setting_id is missing, treat it as a new record with auto-incremented ID
+			newRecord := HomePagesSettingTable{
+				Section:     section,
+				DataType:    row["data_type"].(string),
+				SettingData: row["setting_data"].(string),
+				CreatedBy:   int(user_id),
+				UpdatedBy:   0,
+				CreatedDate: time.Now(),
+				UpdatedDate: time.Now(),
+			}
+
+			_, err := tx.Insert(&newRecord)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			insertIDs = append(insertIDs, newRecord.PageSettingId)
+			UpdateUniqueCode(newRecord.PageSettingId)
+
+			continue
+		}
+
+		// Convert page_setting_id to int64
+		pageSettingID, err := strconv.ParseInt(pageSettingIDStr, 10, 64)
+		if err != nil {
+			tx.Rollback()
+			return nil, nil, errors.New("invalid 'page_setting_id' format")
+		}
+
+		if _, exists := existingIDs[int(pageSettingID)]; exists {
+			// If the record exists, update it
+			var existingRecord HomePagesSettingTable
+			err := db.QueryTable("home_pages_setting_table").Filter("page_setting_id", int(pageSettingID)).One(&existingRecord)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			existingRecord.Section = section
+			existingRecord.DataType = row["data_type"].(string)
+			existingRecord.SettingData = row["setting_data"].(string)
+			existingRecord.UpdatedBy = int(user_id)
+			existingRecord.UpdatedDate = time.Now()
+
+			_, err = tx.Update(&existingRecord)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			updateIDs = append(updateIDs, existingRecord.PageSettingId)
+		} else {
+			// If the record doesn't exist, insert a new one
+			newRecord := HomePagesSettingTable{
+				PageSettingId: int(pageSettingID),
+				Section:       section,
+				DataType:      row["data_type"].(string),
+				UniqueCode:    "",
+				SettingData:   row["setting_data"].(string),
+				CreatedBy:     int(user_id),
+				UpdatedBy:     0,
+				CreatedDate:   time.Now(),
+				UpdatedDate:   time.Now(),
+			}
+
+			_, err := tx.Insert(&newRecord)
+			if err != nil {
+				tx.Rollback()
+				return nil, nil, err
+			}
+
+			insertIDs = append(insertIDs, newRecord.PageSettingId)
+			UpdateUniqueCode(newRecord.PageSettingId)
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		return nil, nil, err
+	}
+
+	helpers.RemoveFileByPath(filePath)
+
+	return insertIDs, updateIDs, nil
+}
+
+func FilterCSC(query_param string) {
+
 }

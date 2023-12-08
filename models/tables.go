@@ -19,6 +19,7 @@ type UserMasterTable struct {
 	OtpCode     string    `orm:size(255)`
 	CreatedDate time.Time `orm:"type(datetime)"`
 }
+
 type HomePagesSettingTable struct {
 	PageSettingId int `orm:"auto"`
 	Section       string

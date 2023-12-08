@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -916,7 +917,7 @@ func ReadCSVFile(filePath string) ([]map[string]interface{}, error) {
 	return allRows, nil
 }
 
-/*END XLSX AND CSV FILE READING FUNCTION END-----------------------*/
+/* END XLSX AND CSV FILE READING FUNCTION END-----------------------*/
 
 func SetSessionByKeyValue(key string, value string, w http.ResponseWriter, r *http.Request) {
 	session, _ := beego.GlobalSessions.SessionStart(w, r)
@@ -938,6 +939,6 @@ func ExtractKeys(data []map[string]interface{}) []string {
 	for key := range keys {
 		result = append(result, key)
 	}
-	// sort.Strings(result)
+	sort.Strings(result)
 	return result
 }

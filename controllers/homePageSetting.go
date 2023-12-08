@@ -9,6 +9,8 @@ import (
 
 	"strings"
 
+	_ "github.com/lib/pq" // PostgreSQL driver
+
 	beego "github.com/beego/beego/v2/server/web"
 )
 
@@ -217,6 +219,7 @@ func (c *HomeSettingController) ExportFile() {
 	}
 
 	json.Unmarshal(c.Ctx.Input.RequestBody, &fileTypes)
+
 	create_file_type := strings.ToUpper(fileTypes.FileType)
 
 	if create_file_type == "" {
@@ -225,7 +228,7 @@ func (c *HomeSettingController) ExportFile() {
 	}
 
 	if create_file_type == "XLSX" || create_file_type == "PDF" || create_file_type == "CSV" {
-		res_data, _ := models.ExportData(fileTypes.Limit)
+		res_data, _ := models.ExportData(fileTypes.Limit, fileTypes.SratingFrom)
 		res_s, _ := helpers.TransformToKeyValuePairs(res_data)
 		header := helpers.ExtractKeys(res_s)
 
@@ -280,11 +283,13 @@ func (c *HomeSettingController) ImportFile() {
 			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error reading XLSX file")
 			return
 		}
-		result, _ := models.RegisterSettingBatch(requestStruct.HomeSeetingInsert{}, 35, filePath, allRows)
-		if result != nil {
+		result, update_id, _ := models.RegisterSettingBatchsss(requestStruct.HomeSeetingInsert{}, 35, filePath, allRows)
+		if result == nil || update_id == nil {
 			helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, "", "File Imported Successfully", "", "")
 			return
 		}
+
+		helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "File Not Imported Please Try Again")
 
 	case strings.HasSuffix(filePath, ".csv"):
 		allRows, err = helpers.ReadCSVFile(filePath)
@@ -293,8 +298,8 @@ func (c *HomeSettingController) ImportFile() {
 			helpers.ApiFailedResponse(c.Ctx.ResponseWriter, "Error reading CSV file")
 			return
 		}
-		result, _ := models.RegisterSettingBatchcsv(requestStruct.HomeSeetingInsert{}, 1, filePath, allRows)
-		if result != nil {
+		result, update_id, _ := models.RegisterSettingBatchsss(requestStruct.HomeSeetingInsert{}, 100, filePath, allRows)
+		if result != nil || update_id != nil {
 			helpers.ApiSuccessResponse(c.Ctx.ResponseWriter, "", "File Imported Successfully", "", "")
 			return
 		}
